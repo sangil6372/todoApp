@@ -61,7 +61,7 @@ app.get('/', function (요청, 응답) {
     응답.render('index.ejs');
 });
 
-app.get('/write', function (요청, 응답) {
+app.get('/write', 로그인했니,  function (요청, 응답) {
     응답.render('write.ejs');
 });
 
@@ -150,9 +150,24 @@ function 로그인했니(요청, 응답, next) {
     if (요청.user) {
         next();
     } else {
-        응답.send('로그인 안하셨는데요?');
+        응답.redirect('/login');
     }
 }
+
+function 채팅했니(요청, 응답,next) {
+    let 확인할거 = {
+        member : [ObjectId(요청.body.당한사람), 요청.user._id ],
+    }
+    db.collection('chatroom').findOne(확인할거,function(에러,결과){
+        if(결과==null){
+            next();
+        }else{
+            응답.redirect('/chat');
+        }
+    })
+
+}
+
 
 // passport 라이브러리 예제코드 비밀번호 인증 localStrategy() = 로컬방식으로 검사
 passport.use(new LocalStrategy({
@@ -348,7 +363,7 @@ app.get('/image/:imageName', function(요청, 응답){
 })
 
 
-app.post('/chatroom',로그인했니, function(요청,응답){
+app.post('/chatroom',로그인했니, 채팅했니, function(요청,응답){
     let 저장할거 = {
         // 오브젝트아이디로 바꾸자
         member : [ObjectId(요청.body.당한사람), 요청.user._id ],
@@ -365,7 +380,7 @@ app.post('/chatroom',로그인했니, function(요청,응답){
 
 })
 
-app.get('/chat',function(요청, 응답){
+app.get('/chat',로그인했니, function(요청, 응답){
     db.collection('chatroom').find(
         {
             // 배열로 저장된 것도 이렇게 쓰네?
@@ -374,4 +389,38 @@ app.get('/chat',function(요청, 응답){
     ).toArray(function(에러,결과){
         응답.render('chat.ejs', { data : 결과});
     })
+})
+
+app.post('/message', 로그인했니, function(요청,응답){
+    
+    let 저장할거 = {
+        parent : 요청.body.parent,
+        content : 요청.body.content,
+        userid : 요청.user._id,
+        date : new Date(),
+    }
+    console.log(저장할거);
+    db.collection('message').insertOne(저장할거).then(()=>{
+        console.log('메세지 저장완료');        
+    })
+})
+
+app.get('/message/:id', 로그인했니, function(요청, 응답){
+    //  write헤더로 실시간 채널 오픈
+    응답.writeHead(200, {
+        "Connection": "keep-alive",
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+      });
+
+    db.collection('message').find({parent : 요청.params.id }).toArray(function(에러,결과){
+        응답.write('event: test\n');
+         // 망할 개행문자 하나만 썼다가 삽질함;
+        응답.write('data: '+ JSON.stringify(결과) +'\n\n');
+    })
+
+    
+    
+  
+
 })
