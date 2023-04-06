@@ -10,18 +10,40 @@
             integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N"
             crossorigin="anonymous">
             <link rel="stylesheet" href="/public/main.css">
+            <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js"></script>
+
     </head>
     <body>
 
         <%- include('nav.html') %>
 
+        
+
         <h4 class="ml-2 my-3 text-center">서버에서 가져온 할 일 리스트</h4>
+
+        <div class="container input-group mb-2">
+            <input id="search-input" class="form-control">
+            <button id="search" class="input-group-append btn btn-danger">검색</button>
+          </div>
+
+        <!-- 검색버튼 누르면 서버로 GET요쳥합시다 -->
+          <script>
+            $('#search').on('click',function(){
+                // 현재 페이지의 url을 바꾸는 법 (GET요청이랑 같음)
+                let 입력한값 = $('#search-input').val();
+                window.location.replace('/search?value='+입력한값);
+            })
+          </script>
+
+
         <!-- 할 일 리스트 -->
         <div class="container">
             <ul class="list-group list-group-flush">
                 <% for (let i=0;i< posts.length;i++){ %>
                     <li class="list-group-item">
                         <p>글번호 : <%=posts[i]._id%></p>
+                        <p>작성자_id : <%=posts[i].작성자
+                        %> </p>
                         <a href="#" class ="todos" data-id="<%=posts[i]._id%>">
                             <h4>할 일 제목 :
                                 <%= posts[i].제목 %></h4>
@@ -31,13 +53,13 @@
                         </p>
                         <!-- data-id 사용자 정의 데이터 속성 -->
                         <button class="delete btn btn-danger" data-id="<%=posts[i]._id%>">삭제</button>
+                        <button class="chat btn btn-secondary" data-userid="<%=posts[i].작성자%>">채팅하기</button>
                     </li>
                 <% } %>
         </div>
 
         </ul>
-        <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js"></script>
-
+       
         <script>
 
             $('.delete').on('click', function (e) {
@@ -78,7 +100,22 @@
             
             })
             
+            // 채팅하기 버튼 누르면 
+            $('.chat').on('click',function(e){
+                let userid = e.target.dataset.userid;
+                $.ajax({
+                    method: 'POST',
+                    url: '/chatroom',
+                    data: { 당한사람 : userid}
+                }).done(function(결과){
+                    window.location.replace('/chat');
+                }).fail(function (a, b, c) {
+                        alert('');
+                        console.log(a, b, c);
 
+                    })
+
+            })
 
 
         </script>
