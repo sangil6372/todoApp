@@ -37,9 +37,7 @@
                <div class="col-9 p-0">
                  <div class="chat-room">
                     <ul class="list-group chat-content">
-                      <li><span class="chat-box">채팅방1 내용</span></li>
-                      <li><span class="chat-box">채팅방1 내용</span></li>
-                      <li><span class="chat-box mine">채팅방1 내용</span></li>
+                     
                     </ul>
                   <div class="input-group">
                     <input class="form-control" id="chat-input">
@@ -68,10 +66,28 @@
 
         $('.list-group-item').on('click',function(e){
           지금누른채팅방id = this.dataset.id;
+          // 채팅방 비우고 ~
+          $('.chat-content').html('');
+
+
+          // eventSource에 뭐가 정의 되어있으면 실시간 소통을 닫아주삼
+          if(eventSource!=undefined){
+            eventSource.close();
+          }
+
           eventSource = new EventSource('/message/' + 지금누른채팅방id);
           
+          // 실시간 get요총
           eventSource.addEventListener('test',function(e){
             console.log(JSON.parse(e.data));
+            
+            
+            // 채팅 추가
+            JSON.parse(e.data).forEach(element => {
+              $('.chat-content').append('<li><span class="chat-box">' +  
+                element.content +'</span></li>')
+            });
+            
           })
 
           $(this).css('background-color', '#eee'); 

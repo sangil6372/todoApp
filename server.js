@@ -1,7 +1,14 @@
 const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
+
+// socket.io
+const http = require('http').createServer(app);
+const { Server } = require("socket.io");
+const io = new Server(http);
+
 app.use(express.urlencoded({extended: true}))
+
 const MongoClient = require('mongodb').MongoClient;
 app.set('view engine', 'ejs');
 const methodOverride = require('method-override')
@@ -50,12 +57,38 @@ MongoClient.connect(
 
         // 포트번호 8080에서 웹서버를 시작한다  localhost:8080  web 서버 시작되면 listening on 8080 이라는 메세지
         // 출력함
-        app.listen(process.env.PORT, function () {
+        http.listen(process.env.PORT, function () {
             console.log('listening on ' + process.env.PORT);
         });
 
     }
 );
+
+app.get('/socket',function(요청,응답){
+    응답.render('socket.ejs');
+})
+
+// 웹소켓에 접속하면 실행해주삼 일종의 이벤트리스너
+io.on('connection', function(socket){
+    console.log('유저 접속됨');
+    
+    socket.on('user-send',function(data){
+        io.to(socket.id).emit('broadcast', data);
+    })
+
+    socket.on('joinroom',function(data){
+        // room1 로 채팅방에 넣어줌
+        socket.join('room1');
+    })
+
+    socket.on('room1-send', function(data){
+        io.to('room1').emit('broadcast', data);
+    })
+
+
+})
+
+
 
 app.get('/', function (요청, 응답) {
     응답.render('index.ejs');
@@ -405,7 +438,7 @@ app.post('/message', 로그인했니, function(요청,응답){
     })
 })
 
-app.get('/message/:id', 로그인했니, function(요청, 응답){
+app.get('/message/:parentid', 로그인했니, function(요청, 응답){
     //  write헤더로 실시간 채널 오픈
     응답.writeHead(200, {
         "Connection": "keep-alive",
@@ -413,14 +446,30 @@ app.get('/message/:id', 로그인했니, function(요청, 응답){
         "Cache-Control": "no-cache",
       });
 
-    db.collection('message').find({parent : 요청.params.id }).toArray(function(에러,결과){
+    db.collection('message').find({parent : 요청.params.parentid }).toArray(function(에러,결과){
         응답.write('event: test\n');
          // 망할 개행문자 하나만 썼다가 삽질함;
         응답.write('data: '+ JSON.stringify(결과) +'\n\n');
     })
 
+    const pipeline =[
+        { $match : { 'fullDocument.parent' : 요청.params.parentid}}
+    ];
+    const collection = db.collection('message');
+    const changeStream = collection.watch(pipeline);
     
-    
+    // 익숙한 건 밑에처럼 
+    // const chageStream = db.collection('message').watch([
+    //     { $match : { 'fullDocument(parent)' : 요청.params.id}}
+    // ]);
+
+
+    changeStream.on('change', (result)=>{
+        응답.write('event: test\n');
+        // fullDocument 쓰는 이유는 바뀐거 하나만 필요하니까
+        응답.write('data: '+  JSON.stringify([result.fullDocument]) +'\n\n');
+    });
+
   
 
 })
